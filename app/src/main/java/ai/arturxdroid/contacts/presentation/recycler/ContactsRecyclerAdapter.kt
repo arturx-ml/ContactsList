@@ -1,7 +1,8 @@
-package ai.arturxdroid.contacts.recycler
+package ai.arturxdroid.contacts.presentation.recycler
 
 import ai.arturxdroid.contacts.R
-import ai.arturxdroid.contacts.domain.ContactData
+import ai.arturxdroid.contacts.data.Contact
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
@@ -10,7 +11,7 @@ import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.textview.MaterialTextView
 
-class ContactsRecyclerAdapter(val contacts: List<ContactData>) :
+class ContactsRecyclerAdapter(var contacts: List<Contact>) :
     RecyclerView.Adapter<ContactsRecyclerViewHolder>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ContactsRecyclerViewHolder {
         val view = LayoutInflater.from(parent.context)
@@ -24,7 +25,14 @@ class ContactsRecyclerAdapter(val contacts: List<ContactData>) :
 
     override fun onBindViewHolder(holder: ContactsRecyclerViewHolder, position: Int) {
         // noop
+        holder.setContactName(contacts[position].name)
+        holder.setContactNumber(contacts[position].number)
+        holder.setContactDrawable(contacts[position].pictureDrawable ?: return)
+    }
 
+    fun updateList(list: List<Contact>) {
+        contacts = list
+        this.notifyDataSetChanged()
     }
 }
 
@@ -44,7 +52,7 @@ class ContactsRecyclerViewHolder(val itemView: View) : RecyclerView.ViewHolder(i
         contactNumberTextView.text = number
     }
 
-    fun setContactImage(imageUri: Uri) {
-        contactImageView.setImageURI(imageUri)
+    fun setContactDrawable(drawable: Drawable) {
+        contactImageView.setImageDrawable(drawable)
     }
 }
