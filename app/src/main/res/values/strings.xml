@@ -1,6 +1,9 @@
 <resources>
     <string name="app_name">Contact List</string>
-    <string name="permission_grant_msg">App can\'t work without contacts permission! Please grant it in the next dialogue</string>
+    <string name="permission_grant_msg">App can\'t work without contacts permission!</string>
     <string name="contact_picture">contact picture</string>
     <string name="refresh_button">refresh button</string>
+    <string name="ok">Ok\n</string>
+    <string name="cancel">Cancel</string>
+    <string name="settings_open_msg">App can only work with contact permissions granted, kindly enable them in settings</string>
 </resources>

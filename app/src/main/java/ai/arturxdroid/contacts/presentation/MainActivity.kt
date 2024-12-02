@@ -4,42 +4,46 @@ import ai.arturxdroid.contacts.R
 import ai.arturxdroid.contacts.di.DiContainer
 import ai.arturxdroid.contacts.presentation.recycler.ContactsRecyclerAdapter
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.widget.Toast
+import android.provider.Settings
+import android.util.Log
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+
 
 class MainActivity : AppCompatActivity() {
 
-
     private val contactViewModel by lazy { DiContainer.contactsViewModel }
     private var recycler: RecyclerView? = null
+    private var actionButton: FloatingActionButton? = null
     private var adapter: ContactsRecyclerAdapter? = null
 
     private val mainThreadHandler = Handler(Looper.getMainLooper())
     private val requestPermissionDelayMs = 3500L
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted: Boolean ->
+            contactViewModel.permissionUpdate(granted)
             if (granted) {
                 contactViewModel.fetchContacts()
             } else {
-                Toast.makeText(
-                    this,
-                    getString(R.string.permission_grant_msg),
-                    Toast.LENGTH_LONG
-                ).show()
-                mainThreadHandler.postDelayed({
-                    showRequestPermissionDialogue()
-                }, requestPermissionDelayMs)
+                if (ActivityCompat.shouldShowRequestPermissionRationale(
+                        this, Manifest.permission.READ_CONTACTS)) showSimpleExplanationDialog()
+                else {
+                    showSystemSettingsDialog()
+                }
             }
         }
 
@@ -52,13 +56,17 @@ class MainActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
-        requestPermission()
+        checkPermission()
         initUI()
     }
 
     private fun initUI() {
         recycler = findViewById(R.id.contacts_recycler)
-        contactViewModel.contactsLiveData.observe(this) { contacts ->
+
+        actionButton = findViewById<FloatingActionButton>(R.id.refresh_button)
+        contactViewModel.mainStateLiveData.observe(this) { state ->
+            updateRefreshButton(state.permissionGranted)
+            val contacts = state.contacts
             if (contacts.isNotEmpty()) {
                 if (adapter == null) {
                     adapter = ContactsRecyclerAdapter(contacts)
@@ -66,8 +74,18 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     adapter?.updateList(contacts)
                 }
-
             }
+        }
+    }
+
+    private fun updateRefreshButton(permissionGranted: Boolean) {
+        val button = actionButton ?: return
+        if (permissionGranted) {
+            button.setImageResource(android.R.drawable.ic_popup_sync)
+            button.setOnClickListener { contactViewModel.fetchContacts() }
+        } else {
+            button.setImageResource(android.R.drawable.ic_dialog_info)
+            button.setOnClickListener { showRequestPermissionDialogue() }
         }
     }
 
@@ -77,30 +95,44 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    private fun requestPermission() {
-
-        when {
-            ContextCompat.checkSelfPermission(
+    private fun checkPermission() {
+        if (ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.READ_CONTACTS
-            ) == PackageManager.PERMISSION_GRANTED -> {
-                contactViewModel.fetchContacts()
-            }
-
-            ActivityCompat.shouldShowRequestPermissionRationale(
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            contactViewModel.permissionUpdate(true)
+            contactViewModel.fetchContacts()
+        } else if (ActivityCompat.shouldShowRequestPermissionRationale(
                 this, Manifest.permission.READ_CONTACTS
-            ) -> {
-                Toast.makeText(this, getString(R.string.permission_grant_msg), Toast.LENGTH_LONG)
-                    .show()
-            }
-
-            else -> {
-                showRequestPermissionDialogue()
-                // You can directly ask for the permission.
-                // The registered ActivityResultCallback gets the result of this request.
-
-            }
+            )
+        ) {
+            Log.e("PERMIESSE", "rationale")
+            showSimpleExplanationDialog()
+        } else {
+            showRequestPermissionDialogue()
         }
     }
+
+
+    private fun showSimpleExplanationDialog() {
+        AlertDialog.Builder(this).setMessage(R.string.permission_grant_msg)
+            .setPositiveButton(R.string.ok, { _, _ -> showRequestPermissionDialogue() })
+            .setNegativeButton(R.string.cancel, { _, _ -> }).create().show()
+    }
+
+    private fun showSystemSettingsDialog() {
+        AlertDialog.Builder(this).setMessage(R.string.settings_open_msg)
+            .setPositiveButton(R.string.ok, { _, _ ->
+                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                val uri = Uri.fromParts("package", packageName, null)
+                intent.setData(uri)
+                startActivity(intent)
+            })
+            .setNegativeButton(R.string.cancel, { _, _ -> }).create().show()
+
+
+    }
+
 
 }

@@ -13,9 +13,9 @@ import kotlinx.coroutines.launch
 
 class ContactsViewModel(private val repository: ContactsRepository) : ViewModel() {
 
-    private val internalContactLiveData: MutableLiveData<List<Contact>> =
-        MutableLiveData(listOf<Contact>())
-    val contactsLiveData: LiveData<List<Contact>> = internalContactLiveData
+    private val internalStateLiveData: MutableLiveData<MainState> =
+        MutableLiveData(MainState((emptyList()), false))
+    val mainStateLiveData: LiveData<MainState> = internalStateLiveData
 
     private val loggingExceptionHandler = CoroutineExceptionHandler { coroutineContext, throwable ->
         Log.e(
@@ -25,6 +25,9 @@ class ContactsViewModel(private val repository: ContactsRepository) : ViewModel(
         )
     }
 
+    fun permissionUpdate(granted: Boolean) {
+        internalStateLiveData.postValue(internalStateLiveData.value?.copy(permissionGranted = granted))
+    }
 
     fun fetchContacts() {
         viewModelScope.launch {
@@ -46,10 +49,10 @@ class ContactsViewModel(private val repository: ContactsRepository) : ViewModel(
                     contact.pictureDrawable = image
                 }
             }
-            internalContactLiveData.postValue(contacts)
+            internalStateLiveData.postValue(internalStateLiveData.value?.copy(contacts = contacts, permissionGranted = true))
 
         }
     }
-
-
 }
+
+data class MainState(val contacts: List<Contact>, val permissionGranted: Boolean)
