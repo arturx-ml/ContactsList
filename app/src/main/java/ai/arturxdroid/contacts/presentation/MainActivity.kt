@@ -22,6 +22,8 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.search.SearchBar
+import com.google.android.material.search.SearchView
 
 
 class MainActivity : AppCompatActivity() {
@@ -29,10 +31,10 @@ class MainActivity : AppCompatActivity() {
     private val contactViewModel by lazy { DiContainer.contactsViewModel }
     private var recycler: RecyclerView? = null
     private var actionButton: FloatingActionButton? = null
+    private var searchView: SearchView? = null
+    private var searchBar: SearchBar? = null
     private var adapter: ContactsRecyclerAdapter? = null
 
-    private val mainThreadHandler = Handler(Looper.getMainLooper())
-    private val requestPermissionDelayMs = 3500L
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted: Boolean ->
             contactViewModel.permissionUpdate(granted)
@@ -40,7 +42,9 @@ class MainActivity : AppCompatActivity() {
                 contactViewModel.fetchContacts()
             } else {
                 if (ActivityCompat.shouldShowRequestPermissionRationale(
-                        this, Manifest.permission.READ_CONTACTS)) showSimpleExplanationDialog()
+                        this, Manifest.permission.READ_CONTACTS
+                    )
+                ) showSimpleExplanationDialog()
                 else {
                     showSystemSettingsDialog()
                 }
@@ -62,6 +66,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun initUI() {
         recycler = findViewById(R.id.contacts_recycler)
+        searchView = findViewById(R.id.search_view)
+        searchBar = findViewById(R.id.search_bar)
+        searchView?.setupWithSearchBar(searchBar)
 
         actionButton = findViewById<FloatingActionButton>(R.id.refresh_button)
         contactViewModel.mainStateLiveData.observe(this) { state ->
