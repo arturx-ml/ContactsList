@@ -12,6 +12,7 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.util.Log
+import android.widget.EditText
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -20,10 +21,9 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.widget.doOnTextChanged
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import com.google.android.material.search.SearchBar
-import com.google.android.material.search.SearchView
 
 
 class MainActivity : AppCompatActivity() {
@@ -31,8 +31,7 @@ class MainActivity : AppCompatActivity() {
     private val contactViewModel by lazy { DiContainer.contactsViewModel }
     private var recycler: RecyclerView? = null
     private var actionButton: FloatingActionButton? = null
-    private var searchView: SearchView? = null
-    private var searchBar: SearchBar? = null
+    private var searchEditText: EditText? = null
     private var adapter: ContactsRecyclerAdapter? = null
 
     private val requestPermissionLauncher =
@@ -66,21 +65,24 @@ class MainActivity : AppCompatActivity() {
 
     private fun initUI() {
         recycler = findViewById(R.id.contacts_recycler)
-        searchView = findViewById(R.id.search_view)
-        searchBar = findViewById(R.id.search_bar)
-        searchView?.setupWithSearchBar(searchBar)
-
+        searchEditText = findViewById(R.id.search_edit_text)
         actionButton = findViewById<FloatingActionButton>(R.id.refresh_button)
+
+        searchEditText?.doOnTextChanged { text, start, before, count ->
+            val searchText = text?.toString() ?: return@doOnTextChanged
+            contactViewModel.searchContactName(searchText)
+        }
+
+
+
         contactViewModel.mainStateLiveData.observe(this) { state ->
             updateRefreshButton(state.permissionGranted)
             val contacts = state.contacts
-            if (contacts.isNotEmpty()) {
-                if (adapter == null) {
-                    adapter = ContactsRecyclerAdapter(contacts)
-                    recycler?.adapter = adapter
-                } else {
-                    adapter?.updateList(contacts)
-                }
+            if (adapter == null) {
+                adapter = ContactsRecyclerAdapter(contacts)
+                recycler?.adapter = adapter
+            } else {
+                adapter?.updateList(contacts)
             }
         }
     }

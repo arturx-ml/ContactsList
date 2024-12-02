@@ -16,6 +16,7 @@ class ContactsViewModel(private val repository: ContactsRepository) : ViewModel(
     private val internalStateLiveData: MutableLiveData<MainState> =
         MutableLiveData(MainState((emptyList()), false))
     val mainStateLiveData: LiveData<MainState> = internalStateLiveData
+    private val fetchedContacts = arrayListOf<Contact>()
 
     private val loggingExceptionHandler = CoroutineExceptionHandler { coroutineContext, throwable ->
         Log.e(
@@ -49,9 +50,26 @@ class ContactsViewModel(private val repository: ContactsRepository) : ViewModel(
                     contact.pictureDrawable = image
                 }
             }
-            internalStateLiveData.postValue(internalStateLiveData.value?.copy(contacts = contacts, permissionGranted = true))
+            fetchedContacts.clear()
+            fetchedContacts.addAll(contacts)
+
+            internalStateLiveData.postValue(
+                internalStateLiveData.value?.copy(
+                    contacts = contacts,
+                    permissionGranted = true
+                )
+            )
 
         }
+    }
+
+    fun searchContactName(query: String) {
+        val filtered = fetchedContacts.filter { contact ->
+            contact.name.lowercase().contains(
+                query.lowercase()
+            )
+        }
+        internalStateLiveData.postValue(internalStateLiveData.value?.copy(contacts = filtered))
     }
 }
 
